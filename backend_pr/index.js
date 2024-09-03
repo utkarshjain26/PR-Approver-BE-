@@ -19,10 +19,8 @@ const User=require('./model/user');
 const Review=require('./model/review');
 const PullRequest=require('./model/pullrequest');
 const Approval=require('./model/approval');
-const { Socket } = require('dgram');
+const { appRouter } = require('./modules/index.routes');
 
-const pullRequests = [];
-const users= [];
 
 app.use(cookieParser());
 app.use(cors({credentials:true,origin:'http://localhost:3000'}));
@@ -35,7 +33,7 @@ app.use(express.urlencoded({extended:false}));
 const io=new Server(server,{
     connectionStateRecovery: {},
     cors:{
-        origin: "http://localhost:3000",
+        origin: 'http://localhost:3000',
     },
     credentials:'include',
     methods:["GET","POST"],
@@ -43,21 +41,6 @@ const io=new Server(server,{
 
 
 
-async function getApproversAndRequesters(checker) {
-    try {
-      const selectedArray = checker.filter(input=>(input!==false));
-
-      const approversArray=selectedArray.map(info=>({
-            approverId:info,
-            status:'Pending',
-      }))
-      return approversArray;
-
-    } catch (error) {
-      console.error("Error retrieving approvers and requesters:", error);
-      throw error;
-    }
-}
 
 app.get('/profile',(req,res)=>{
     const {token}=req.cookies;
@@ -328,6 +311,45 @@ io.on('connection', (socket) => {
     socket.on('disconnect', () => {
         console.log('a user disconnected');
     });
+});
+
+// app.use('/', appRouter);
+
+// global error handler
+app.use((error, req, res, next) => {
+	if (process.env.NODE_ENV !== 'production') {
+		logger.log(error);
+	}
+	let message = null;
+	let status = 500;
+	if (error.errors) {
+		const ve = error;
+		ve.message = 'Validation Error';
+		return res.status(400).send(ve);
+	}
+	if (error instanceof Object) {
+		if (error.message && error.status && error) {
+			message = {
+				message: error.message,
+				stack: stringifyError(error),
+			};
+			status = error.status;
+		} else
+			message = {
+				message: 'Internal Server Error',
+				stack: stringifyError(error),
+			};
+	} else if (typeof error === 'string' && !error.includes('Error')) {
+		message = {
+			message: error,
+		};
+	} else {
+		message = {
+			message: 'Internal Server Error',
+			stack: stringifyError(error),
+		};
+	}
+	return res.status(status).send(message);
 });
 
 mongoose.connection.once('open',()=>{
