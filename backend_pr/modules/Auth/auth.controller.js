@@ -1,3 +1,7 @@
+const User = require("../../model/user");
+const jwt=require('jsonwebtoken');
+const bcrypt=require('bcrypt');
+
 const signUp = async (req, res, next) => {
   try {
     const { username, email, password } = req.body;
@@ -7,7 +11,7 @@ const signUp = async (req, res, next) => {
       throw new Error("User already exists");
     }
 
-    const salt = await bcrypt.genSalt(saltRound);
+    const salt = await bcrypt.genSalt(process.env.SALT_ROUND);
     const hshpwd = await bcrypt.hash(`${password}`, `${salt}`);
 
     const newUser = await User.create({ username, email, password: hshpwd });
@@ -29,18 +33,17 @@ const login = async (req, res, next) => {
     if (!passcheck) {
       throw new Error("Invalid password");
     }
-    const token = jwt.sign({ username, id: findUser._id }, secret, {});
+    const token = jwt.sign({ username, id: findUser._id }, process.env.JWT_SECRET, {});
     const userCredentials = {
       user: {
-        userId: checkUser._id,
-        userName: checkUser.username,
-        userEmail: checkUser.email,
+        userId: findUser._id,
+        userName: findUser.username,
+        userEmail: findUser.email,
       },
       token,
     };
     return res.status(200).json(userCredentials);
   } catch (err) {
-    console.log(err);
     return next(err);
   }
 };

@@ -1,8 +1,8 @@
 import { useState,useEffect,useContext } from "react";
-import { UserContext } from "./UserContext";
-import Format from "./Format";
+import { UserContext } from "../../UserContext";
+import PullRequest from "../components/PullRequest";
 
-const Rejected = () => {
+const RejectedRequests = () => {
     const [posts,setPosts]=useState([]);
     const {userInfo,setRefresh,sock}=useContext(UserContext);
     const [flag,setFlag]=useState(false);
@@ -23,14 +23,11 @@ const Rejected = () => {
 
   return (
     <div className="pull-body">
-        
-        
         {posts.length>0 && posts.filter(post=>(post.status==='Rejected')).map(post=>(
-            <Format {...post} />
-        ))} 
-        
+            <PullRequest {...post} />
+        ))}   
     </div>
   )
 }
 
-export default Rejected
+export default RejectedRequests;

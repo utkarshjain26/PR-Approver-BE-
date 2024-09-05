@@ -1,6 +1,6 @@
 import {Link} from 'react-router-dom';
  
-const Content = () => {
+const HomeLogin = () => {
   return (
     <div className='home-body'>
       <h1 className='home-heading'>Requests</h1>
@@ -14,4 +14,4 @@ const Content = () => {
   )
 }
 
-export default Content;
+export default HomeLogin;

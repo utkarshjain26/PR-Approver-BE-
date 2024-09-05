@@ -2,7 +2,7 @@ import { useContext, useEffect, useState } from 'react';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import { Navigate } from 'react-router-dom';
-import { UserContext } from './UserContext';
+import { UserContext } from '../../UserContext';
 import { Dropdown } from 'react-bootstrap';
 
 const { io } = require("socket.io-client");
