@@ -1,8 +1,8 @@
 import { useState,useEffect,useContext } from "react";
-import { UserContext } from "./UserContext";
-import Format from "./Format";
+import { UserContext } from "../../UserContext";
+import PullRequest from "../components/PullRequest";
 
-const Approved = () => {
+const ApprovedRequest = () => {
     const [posts,setPosts]=useState([]);
     const {userInfo,setRefresh,sock}=useContext(UserContext);
     const [flag,setFlag]=useState(false);
@@ -23,14 +23,11 @@ const Approved = () => {
 
   return (
     <div className="pull-body">
-        
-        
         {posts.length>0 && posts.filter(post=>(post.status==='Approved')).map(post=>(
-            <Format {...post} />
+            <PullRequest {...post} />
         ))} 
-        
     </div>
   )
 }
 
-export default Approved
+export default ApprovedRequest;
