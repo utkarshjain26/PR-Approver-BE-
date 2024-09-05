@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 const express=require('express');
 const app=express();
 const mongoose = require('mongoose');
@@ -7,10 +9,9 @@ const cors=require('cors');
 
 const jwt=require('jsonwebtoken');
 const bcrypt=require('bcrypt');
-const secret='d75ba2a445afb34ac6c0f9764010c0b37682cf735b0323e13c0b37381f9fdc4a44d8004bbf8904b9262c8e921754473b41acfeb6f5ad73a50955c51de7cf3e05';
-const saltRound=10;
 const cookieParser=require('cookie-parser');
-
+const secret="d75ba2a445afb34ac6c0f9764010c0b37682cf735b0323e13c0b37381f9fdc4a44d8004bbf8904b9262c8e921754473b41acfeb6f5ad73a50955c51de7cf3e05";
+const saltRound=10;
 const {Server} =require("socket.io");
 const server=require('http').createServer(app);
 
@@ -20,6 +21,7 @@ const Review=require('./model/review');
 const PullRequest=require('./model/pullrequest');
 const Approval=require('./model/approval');
 const { appRouter } = require('./modules/index.routes');
+const { authRouter } = require('./modules/Auth/auth.routes');
 
 
 app.use(cookieParser());
@@ -39,7 +41,21 @@ const io=new Server(server,{
     methods:["GET","POST"],
 })
 
+async function getApproversAndRequesters(checker) {
+    try {
+      const selectedArray = checker.filter(input=>(input!==false));
 
+      const approversArray=selectedArray.map(info=>({
+            approverId:info,
+            status:'Pending',
+      }))
+      return approversArray;
+
+    } catch (error) {
+      console.error("Error retrieving approvers and requesters:", error);
+      throw error;
+    }
+}
 
 
 app.get('/profile',(req,res)=>{
@@ -51,35 +67,37 @@ app.get('/profile',(req,res)=>{
     })
 })
 
-app.post('/register',async (req,res)=>{
-    const {username,email,password}=req.body;
-    try{
-        const salt=await bcrypt.genSalt(saltRound);
-        const hshpwd=await bcrypt.hash(`${password}`,`${salt}`);
-        const userDoc=await User.create({username,email,password:hshpwd});
-        res.json(userDoc);
-    }catch(err){
-        console.log(err);
-        res.status(400).send(err);
-    }
-})
+// app.post('/register',async (req,res)=>{
+//     const {username,email,password}=req.body;
+//     try{
+//         const salt=await bcrypt.genSalt(saltRound);
+//         const hshpwd=await bcrypt.hash(`${password}`,`${salt}`);
+//         const userDoc=await User.create({username,email,password:hshpwd});
+//         res.json(userDoc);
+//     }catch(err){
+//         console.log(err);
+//         res.status(400).send(err);
+//     }
+// })
 
-app.post('/login',async(req,res)=>{
-    const {username,password}=req.body;
-    const findUser=await User.findOne({username});
-    if(!findUser) return res.status(400).send('NO user found');
-    const passcheck=await bcrypt.compare(`${password}`,findUser.password);
-    if(passcheck){
-        const token=jwt.sign(
-            {username,id:findUser._id},
-            secret,
-            {}
-        );
-        return res.cookie('token',token).json({username,id:findUser._id});
-    }else{
-        return res.sendStatus(400);
-    }
-})
+// app.post('/login',async(req,res)=>{
+//     const {username,password}=req.body;
+//     const findUser=await User.findOne({username});
+//     if(!findUser) return res.status(400).send('NO user found');
+//     const passcheck=await bcrypt.compare(`${password}`,findUser.password);
+//     if(passcheck){
+//         const token=jwt.sign(
+//             {username,id:findUser._id},
+//             secret,
+//             {}
+//         );
+//         return res.cookie('token',token).json({username,id:findUser._id});
+//     }else{
+//         return res.sendStatus(400);
+//     }
+// })
+
+app.use('/auth', authRouter);
 
 app.post('/logout',(req,res)=>{
     res.cookie('token','').json('ok');
@@ -318,7 +336,8 @@ io.on('connection', (socket) => {
 // global error handler
 app.use((error, req, res, next) => {
 	if (process.env.NODE_ENV !== 'production') {
-		logger.log(error);
+		// logger.log(error);
+        console.log(error);
 	}
 	let message = null;
 	let status = 500;
@@ -331,13 +350,13 @@ app.use((error, req, res, next) => {
 		if (error.message && error.status && error) {
 			message = {
 				message: error.message,
-				stack: stringifyError(error),
+				// stack: stringifyError(error),
 			};
 			status = error.status;
 		} else
 			message = {
 				message: 'Internal Server Error',
-				stack: stringifyError(error),
+				// stack: stringifyError(error),
 			};
 	} else if (typeof error === 'string' && !error.includes('Error')) {
 		message = {
@@ -346,13 +365,13 @@ app.use((error, req, res, next) => {
 	} else {
 		message = {
 			message: 'Internal Server Error',
-			stack: stringifyError(error),
+			// stack: stringifyError(error),
 		};
 	}
 	return res.status(status).send(message);
 });
 
 mongoose.connection.once('open',()=>{
-    server.listen(PORT, ()=>{console.log('server is running at port 4000')});
+    server.listen(PORT, ()=>{console.log(`server is running at port ${PORT}`)});
     console.log(`connected to DB`);
 })
