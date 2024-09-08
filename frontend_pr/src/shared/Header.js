@@ -39,9 +39,14 @@ const Header = () => {
               >
                 <ul className="navbar-nav me-auto mb-2 mb-lg-0">
                   <li className="nav-item">
-                    Hi,{" "}
-                    {username.charAt(0).toUpperCase() +
-                      username.slice(1).toLowerCase()}
+                    <Link
+                      to="/requests"
+                      style={{ textDecoration: "none", color: "#d5d5d5" }}
+                    >
+                      Hi,{" "}
+                      {username.charAt(0).toUpperCase() +
+                        username.slice(1).toLowerCase()}
+                    </Link>
                   </li>
                   <li className="nav-item">
                     <Link

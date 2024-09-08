@@ -6,13 +6,12 @@ const signUp = async (req, res, next) => {
   try {
     const { username, email, password } = req.body;
 
-    const checkUser = await User.find({ email: email });
+    const checkUser = await User.findOne({ email: email });
     if (checkUser) {
       throw new Error("User already exists");
     }
-
-    const salt = await bcrypt.genSalt(process.env.SALT_ROUND);
-    const hshpwd = await bcrypt.hash(`${password}`, `${salt}`);
+    
+    const hshpwd = bcrypt.hashSync(password,10); // salt_round=10;
 
     const newUser = await User.create({ username, email, password: hshpwd });
     return res.status(200).json(newUser);

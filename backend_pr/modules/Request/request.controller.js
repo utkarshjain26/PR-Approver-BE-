@@ -1,3 +1,4 @@
+const PullRequest = require("../../model/pullrequest");
 const { services } = require("../../services/services");
 
 const getRequests = async (req, res, next) => {
@@ -51,12 +52,15 @@ const createRequest = async (req, res, next) => {
     const { title, content, processed, checker } = req.body;
     const info = req.user;
 
-    const approversArray = await services.getApproversAndRequesters(checker);
+    const approversArray=await services.getApproversAndRequesters(checker);
+
+    console.log('users at controller',approversArray);
+    
     if (title) {
       const userDoc = await PullRequest.create({
         title,
         description: content,
-        requesterId: info.id,
+        requesterId: info._id,
         comments: [],
         approvals: [],
         processed,
@@ -70,7 +74,9 @@ const createRequest = async (req, res, next) => {
       }
 
       return res.json(userDoc);
-    } else res.status(400).json("Title is required");
+    } else {
+      res.status(400).json("Title is required");
+    }
   } catch (err) {
     return next(err);
   }
@@ -141,11 +147,11 @@ const postCommentToRequestById = async (req, res, next) => {
   }
 };
 
-exports.requestController={
-    getRequests,
-    getRequestById,
-    createRequest,
-    deleteRequestById,
-    updateRequestById,
-    postCommentToRequestById,
-}
+exports.requestController = {
+  getRequests,
+  getRequestById,
+  createRequest,
+  deleteRequestById,
+  updateRequestById,
+  postCommentToRequestById,
+};

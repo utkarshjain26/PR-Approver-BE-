@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ApiMutations } from "../../api/query";
+import { Button } from "@mui/material";
 
 const SignUp = () => {
   const [username, setUsername] = useState("");
@@ -74,9 +75,9 @@ const SignUp = () => {
             onChange={(e) => setPassword(e.target.value)}
             required
           />
-          <button className="home-button" type="submit">
+          <Button variant="contained" color="success" sx={{marginTop:'15px', textTransform:'none', fontSize:'16px'}} className="login-button" type="submit">
             Register
-          </button>
+          </Button>
         </form>
         <div class="login-link">
           Already have an account?{" "}

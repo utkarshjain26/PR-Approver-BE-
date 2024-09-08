@@ -4,45 +4,51 @@ import Button from "react-bootstrap/Button";
 import Modal from "react-bootstrap/Modal";
 import PullRequest from "../components/PullRequest";
 import Notification from "../../shared/Notification";
+import { ApiQueries } from "../../api/query";
+import { useUserStore } from "../../store/UserStore";
 
 const { io } = require("socket.io-client");
 const socket = io("http://localhost:4000");
 
 const PendingRequest = () => {
-//   const [open, setOpen] = useState(false);
+  const [posts, setPosts] = useState([]);
+  const [flag, setFlag] = useState(false);
+  const [open, setOpen] = useState(false);
+  // const [notification, setNotification] = useState([]);
+
+  const user = useUserStore((state) => state.user);
+  const authToken = useUserStore((state) => state.authToken);
+  const notification = useUserStore((state) => state.notification);
+
+  const setNotification = useUserStore((state) => state.setNotification);
 
   
-
-  const [posts, setPosts] = useState([]);
-  const { userInfo, setRefresh, sock, open, setOpen } =
-    useContext(UserContext);
-  const [flag, setFlag] = useState(false);
-
-  const getPost = () =>
-    fetch("http://localhost:4000/pull-request", {
-      method: "GET",
-      credentials: "include",
-    }).then((response) => {
-      response.json().then((post) => {
-        setPosts(post);
-        setRefresh(true);
-      });
+  useEffect(() => {
+    socket.on(`parallel${user.userId}`, (message) => {
+      setNotification(message);
     });
+  }, [socket]);
 
-//   const handleClose = () => setPopupOpen(false);
+  console.log('notification array',notification);
 
   useEffect(() => {
-    getPost();
-    socket.on(`newRequest${userInfo.id}`, (message) => {
-        console.log(message);
-      setOpen(true);
+    socket.on(`sequential${user.userId}`, (message) => {
+      setNotification(message);
     });
+  }, [socket]);
 
-    socket.on(`sender${userInfo.id}`, (message) => {
-        console.log(message);
-      setOpen(true);
-    });
-  }, [open]);
+  const {
+    data: requestData,
+    isFetched: isRequestDataFetched,
+    isLoading: isRequestDataLoading,
+  } = ApiQueries.useGetRequests();
+  //   const handleClose = () => setPopupOpen(false);
+
+  useEffect(() => {
+    if (requestData && isRequestDataFetched) {
+      setPosts(requestData);
+    }
+  }, [requestData]);
 
   const notificationHandleClose = () => {
     setOpen(false);
