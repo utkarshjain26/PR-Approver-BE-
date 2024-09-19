@@ -6,6 +6,7 @@ import PullRequest from "../components/PullRequest";
 import Notification from "../../shared/Notification";
 import { ApiQueries } from "../../api/query";
 import { useUserStore } from "../../store/UserStore";
+import { Box, Typography } from "@mui/material";
 
 const { io } = require("socket.io-client");
 const socket = io("http://localhost:4000");
@@ -22,14 +23,13 @@ const PendingRequest = () => {
 
   const setNotification = useUserStore((state) => state.setNotification);
 
-  
   useEffect(() => {
     socket.on(`parallel${user.userId}`, (message) => {
       setNotification(message);
     });
   }, [socket]);
 
-  console.log('notification array',notification);
+  console.log("notification array", notification);
 
   useEffect(() => {
     socket.on(`sequential${user.userId}`, (message) => {
@@ -54,17 +54,31 @@ const PendingRequest = () => {
     setOpen(false);
   };
 
+  const pendingPosts = posts.filter((post) => post.status === "Pending");
+
   return (
     <div className="pull-body">
-      <Notification
-        open={open}
-        notificationHandleClose={notificationHandleClose}
-      />
-
-      {posts.length > 0 &&
-        posts
-          .filter((post) => post.status === "Pending")
-          .map((post) => <PullRequest {...post} />)}
+      {pendingPosts.length === 0 && (
+        <Box
+          sx={{
+            display: "flex",
+            width: "100%",
+            height: "80vh",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          <Typography
+            variant="h4"
+            component="h4"
+            sx={{ color: "#d5d5d5", fontWeight: "600" }}
+          >
+            Nothing to Display!
+          </Typography>
+        </Box>
+      )}
+      {pendingPosts.length > 0 &&
+        pendingPosts.map((post) => <PullRequest {...post} />)}
     </div>
   );
 };

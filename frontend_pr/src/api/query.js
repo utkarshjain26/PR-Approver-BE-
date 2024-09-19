@@ -1,11 +1,19 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import ApiRequests from "./api";
+import { useNotificationStore } from "../store/NotificationStore";
+
 
 export const ApiQueries = {
   useGetUsers: () =>
     useQuery({
       queryKey: ["users"],
       queryFn: async () => ApiRequests.getUsers(),
+      refetchOnWindowFocus: false,
+    }),
+  useGetNotifications: () =>
+    useQuery({
+      queryKey: ["notifications","users"],
+      queryFn: async () => ApiRequests.getNotifications(),
       refetchOnWindowFocus: false,
     }),
   useGetRequests: () =>
@@ -41,6 +49,17 @@ export const ApiMutations = {
       mutationFn: async ({ payload }) => ApiRequests.createRequest({ payload }),
       onSuccess: () => {
         queryClient.invalidateQueries(queryKey);
+      },
+    });
+  },
+  useUpdateNotificationStatus:()=>{
+    const queryClient = useQueryClient();
+    const queryKeys = ["notifications"];
+
+    return useMutation({
+      mutationFn: async ({ id }) => ApiRequests.updateNotificationStatus({ id }),
+      onSuccess: () => {
+        queryClient.invalidateQueries(queryKeys);
       },
     });
   },
@@ -85,7 +104,7 @@ export const ApiMutations = {
 
     return useMutation({
       mutationFn: async ({ id, payload }) =>
-        ApiRequests.postCommentToRequestById({ id, payload }),
+        ApiRequests.postApprovalToRequestById({ id, payload }),
       onSuccess: () => {
         queryKeys.forEach((key) => queryClient.invalidateQueries(key));
       },

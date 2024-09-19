@@ -22,7 +22,10 @@ const PullRequest=require('./model/pullrequest');
 const Approval=require('./model/approval');
 const { appRouter } = require('./modules/index.routes');
 const { authRouter } = require('./modules/Auth/auth.routes');
-const {init} =require('./config/socketConn');
+const {init, getIo} =require('./config/socketConn');
+const { requestRouter } = require('./modules/Request/request.routes');
+const { userRouter } = require('./modules/User/user.routes');
+const { verifyToken } = require('./middleware/verifyToken');
 
 app.use(cookieParser());
 app.use(cors({credentials:true,origin:'http://localhost:3000'}));
@@ -33,6 +36,8 @@ app.use(express.json());
 app.use(express.urlencoded({extended:false}));
 
 init(server);
+
+
 
 // const io=new Server(server,{
 //     connectionStateRecovery: {},
@@ -317,6 +322,11 @@ init(server);
 //     });
 // });
 
+// app.use('/auth', authRouter);
+
+// app.use('/request', verifyToken ,requestRouter);
+
+// app.use('/user',verifyToken, userRouter);
 app.use('/', appRouter);
 
 // global error handler

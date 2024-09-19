@@ -1,8 +1,9 @@
 import { useEffect, useState, useContext } from "react";
-import { Link, useParams, Navigate } from "react-router-dom";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import { UserContext } from "../../UserContext";
 import ReactQuill from "react-quill";
-import {useUserStore} from '../../store/UserStore';
+import { useUserStore } from "../../store/UserStore";
+import { ApiMutations, ApiQueries } from "../../api/query";
 
 const { io } = require("socket.io-client");
 const socket = io("http://localhost:4000");
@@ -40,9 +41,11 @@ const ViewRequest = () => {
   const [postInfo, setPostInfo] = useState({});
   const [comment, setComment] = useState("");
   const [flag, setFlag] = useState(false);
-  const { refresh, popupOpen, setPopupOpen } = useContext(UserContext);
+
   const [redirect, setRedirect] = useState(false);
   const [like, setLike] = useState(false);
+
+  const navigate = useNavigate();
 
   const userInfo = useUserStore((state) => state.user);
   const authToken = useUserStore((state) => state.authToken);
@@ -50,29 +53,33 @@ const ViewRequest = () => {
   const [approver, setApprover] = useState(false);
   const { id } = useParams();
 
-  useEffect(() => {
-    fetch(`http://localhost:4000/pull-request/${id}`).then((response) => {
-      response.json().then((info) => {
-        setPostInfo(info);
-      });
-    });
-  }, [flag]);
+  const {
+    data: requestData,
+    isFetched: isRequestDataFetched,
+    isLoading: isRequestDataLoading,
+  } = ApiQueries.useGetRequestsById({ id });
 
   useEffect(() => {
-    const checkApproverStatus = () => {
-      if (postInfo && postInfo.approvers && postInfo.processed === "parallel") {
-        const isUserApprover = postInfo.approvers.some(
-          (item) => item.approverId._id === userInfo.userId
-        );
-        setApprover(isUserApprover);
-      }
-    };
-    checkApproverStatus();
-  }, [postInfo, userInfo.userId]);
+    if (requestData && isRequestDataFetched) {
+      setPostInfo(requestData);
+    }
+  }, [requestData]);
 
+  // For checking is current user an approver or not (parallel case)
+  useEffect(() => {
+    if (postInfo && postInfo.approvers && postInfo.processed === "parallel") {
+      const isUserApprover = postInfo.approvers.some(
+        (item) => item.approverId._id === userInfo.userId
+      );
+      setApprover(isUserApprover);
+    }
+  }, [postInfo, userInfo]);
+
+  // For checking is current user an approver or not (sequential case)
   useEffect(() => {
     if (
-      postInfo?.approvers?.[postInfo.counter]?.approverId._id === userInfo?.userId
+      postInfo?.approvers?.[postInfo.counter]?.approverId._id ===
+      userInfo?.userId
     ) {
       console.log(postInfo?.approvers?.[postInfo.counter]?.approverId._id);
       console.log(userInfo.userId);
@@ -81,61 +88,64 @@ const ViewRequest = () => {
     }
   }, [postInfo, userInfo]);
 
-  console.log("Approver state updated:", approver);
+  const { mutate: postCommentToRequestById } =
+    ApiMutations.usePostCommentToRequestById();
 
   const handleComment = async (e) => {
     e.preventDefault();
-    // console.log(comment);
-    const response = await fetch(
-      `http://localhost:4000/pull-request/${id}/comments`,
+    const payload = {
+      comment: comment,
+    };
+    postCommentToRequestById(
+      { id, payload },
       {
-        method: "POST",
-        body: JSON.stringify({ comment }),
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
+        onSuccess: () => {
+          setComment("");
+        },
+        onError: () => {
+          alert("Error in posting comment, try again!");
+        },
       }
     );
-    if (response.ok) {
-      setFlag(!flag);
-      setComment("");
-    } else {
-      setComment("");
-      alert("login first");
-    }
   };
+
+  const { mutate: postApprovalToRequestById } =
+    ApiMutations.usePostApprovalToRequestById();
 
   const handleApprove = async (e, approval) => {
     e.preventDefault();
-    const response = await fetch(
-      `http://localhost:4000/pull-request/${id}/approvals`,
+    const payload = {
+      approval: approval,
+    };
+    postApprovalToRequestById(
+      { id, payload },
       {
-        method: "POST",
-        body: JSON.stringify({ status: approval }),
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
+        onSuccess: () => {
+          alert("Request sent!");
+        },
+        onError: () => {
+          alert("Failed to sent request");
+        },
       }
     );
-    if (response.ok) {
-      setFlag(!flag);
-      console.log("emitting");
-    } else {
-      alert("login first");
-    }
   };
+
+  const { mutate: deleteRequestById } = ApiMutations.useDeleteRequestById();
 
   const handleDelete = async (e) => {
-    const response = await fetch(`http://localhost:4000/pull-request/${id}`, {
-      method: "DELETE",
-      body: JSON.stringify({ comment }),
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-    });
-    if (response.ok) setRedirect(true);
+    e.preventDefault();
+    deleteRequestById(
+      { id },
+      {
+        onSuccess: () => {
+          navigate(`/pull-request`);
+        },
+        onError: () => {
+          alert(`Can't delete request, Try again!`);
+        },
+      }
+    );
   };
-
-  if (redirect) {
-    return <Navigate to="/pull-request" />;
-  }
 
   const user = postInfo?.requesterId?.username;
   const length = postInfo?.approvers?.length;

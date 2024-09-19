@@ -14,4 +14,6 @@ router.put("/:id", verifyToken, requestController.updateRequestById);
 
 router.post("/:id/comment", verifyToken, requestController.postCommentToRequestById);
 
+router.post("/:id/approval", verifyToken, requestController.postApprovalToRequestById);
+
 exports.requestRouter = router;

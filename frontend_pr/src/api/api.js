@@ -50,7 +50,6 @@ const request = async (options) => {
     .catch(onError);
 };
 
-
 const ApiRequests = {
   // auth apis
   getLogin: async ({ payload }) =>
@@ -73,6 +72,17 @@ const ApiRequests = {
       method: "GET",
     }),
 
+  // notification apis
+  getNotifications: async () =>
+    request({
+      url: `/notification/`,
+      method: "GET",
+    }),
+  updateNotificationStatus: async ({id}) =>
+    request({
+      url: `/notification/${id}`,
+      method: "PUT",
+    }),
   // request apis
   getRequests: async () =>
     request({
