@@ -1,4 +1,8 @@
+const PullRequest = require("../../model/pullrequest");
+const Notification = require("../../model/notification");
 const { services } = require("../../services/services");
+const Review = require("../../model/review");
+const Approval = require("../../model/approval");
 
 const getRequests = async (req, res, next) => {
   try {
@@ -52,11 +56,14 @@ const createRequest = async (req, res, next) => {
     const info = req.user;
 
     const approversArray = await services.getApproversAndRequesters(checker);
+
+    console.log("users at controller", approversArray);
+
     if (title) {
-      const userDoc = await PullRequest.create({
+      const requestDoc = await PullRequest.create({
         title,
         description: content,
-        requesterId: info.id,
+        requesterId: info._id,
         comments: [],
         approvals: [],
         processed,
@@ -64,13 +71,31 @@ const createRequest = async (req, res, next) => {
       });
 
       if (processed === "parallel") {
-        services.handleParallel(approversArray);
+        const createNotificationsForRequest = async (checker) => {
+          for (let i = 0; i < checker.length; ++i) {
+            await services.createNotification({
+              approverId: checker[i],
+              requestDoc: requestDoc,
+              user: req.user,
+            });
+          }
+        };
+        createNotificationsForRequest(checker);
       } else if (processed === "sequential") {
-        services.handleSequential(approversArray, userDoc);
+        const createNotificationsForRequest = async (checker) => {
+          await services.createNotification({
+            approverId: checker[requestDoc.counter],
+            requestDoc: requestDoc,
+            user: req.user,
+          });
+        };
+        createNotificationsForRequest(checker);
       }
 
-      return res.json(userDoc);
-    } else res.status(400).json("Title is required");
+      return res.json(requestDoc);
+    } else {
+      res.status(400).json("Title is required");
+    }
   } catch (err) {
     return next(err);
   }
@@ -86,6 +111,7 @@ const deleteRequestById = async (req, res, next) => {
 
     await Review.deleteMany({ _id: { $in: postDoc.comments } });
     await Approval.deleteMany({ _id: { $in: postDoc.approvals } });
+    await Notification.deleteMany({ requestId: id });
     await PullRequest.deleteOne({ _id: id });
     return res.status(200).json("ok");
   } catch (err) {
@@ -141,11 +167,76 @@ const postCommentToRequestById = async (req, res, next) => {
   }
 };
 
-exports.requestController={
-    getRequests,
-    getRequestById,
-    createRequest,
-    deleteRequestById,
-    updateRequestById,
-    postCommentToRequestById,
-}
+const postApprovalToRequestById = async (req, res, next) => {
+  try {
+    const { approval } = req.body;
+    const { id } = req.params;
+    const postDoc = await PullRequest.findById(id);
+
+    if (!postDoc) {
+      throw new Error(`Request not found with id ${id}`);
+    }
+
+    const newApproval = await Approval.create({
+      pullRequestId: id,
+      approverId: req.user._id,
+      counter: postDoc.counter++,
+      status: approval,
+    });
+    postDoc.approvals.push(newApproval);
+    await postDoc.save();
+
+    if (approval === "Approved") {
+      postDoc.approvers.forEach((approver) => {
+        if (
+          JSON.stringify(req.user._id) === JSON.stringify(approver.approverId)
+        ) {
+          approver.status = "Approved";
+          if (postDoc.processed === "sequential") {
+            services.createNotification({
+              approverId: postDoc.approvers[postDoc.counter]?.approverId,
+              requestDoc: postDoc,
+              user: req.user,
+            });
+          }
+        }
+      });
+
+      let flag = false;
+      postDoc.approvers.forEach((approver) => {
+        if (approver.status === "Pending") {
+          flag = true;
+        }
+      });
+      if (flag == false) {
+        postDoc.status = "Approved";
+      }
+      postDoc.save();
+    }
+
+    if (approval === "Rejected") {
+      postDoc.approvers.forEach((approver) => {
+        if (JSON.stringify(req.user._id) === JSON.stringify(approver.approverId)) {
+          approver.status = "Rejected";
+        }
+      });
+
+      postDoc.status = "Rejected";
+      postDoc.save();
+    }
+
+    res.status(200).json(newApproval);
+  } catch (err) {
+    return next(err);
+  }
+};
+
+exports.requestController = {
+  getRequests,
+  getRequestById,
+  createRequest,
+  deleteRequestById,
+  updateRequestById,
+  postCommentToRequestById,
+  postApprovalToRequestById,
+};

@@ -12,6 +12,7 @@ import EditRequest from './pages/Request/EditRequest';
 import Footer from './shared/Footer';
 import Header from './shared/Header';
 import HomeLogin from './pages/Home/HomeLogin';
+import NotificationPage from './shared/NotificationPage';
 
 
 function App() {
@@ -36,6 +37,8 @@ function App() {
           <Route path='/pull-request-rejected' element={<RejectedRequests/>}>
           </Route>
           <Route path='/pull-request/:id' element={<ViewRequest />}>
+          </Route>
+          <Route path='/notifications' element={<NotificationPage />}>
           </Route>
           <Route path='/newPullRequest' element={<CreateRequest />}>
           </Route>

@@ -3,6 +3,7 @@ import { UserContext } from "../../UserContext";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { ApiMutations } from "../../api/query";
 import { useUserStore } from "../../store/UserStore";
+import { Button } from "@mui/material";
 
 const Login = () => {
   //   const [redirect,setRedirect]=useState(false);
@@ -83,9 +84,9 @@ const Login = () => {
             onChange={(e) => setPassword(e.target.value)}
             required
           />
-          <button className="home-button" type="submit">
+          <Button variant="contained" color="success" sx={{marginTop:'15px'}} className="login-button" type="submit">
             Sign In
-          </button>
+          </Button>
         </form>
       </div>
       <div class="signup">

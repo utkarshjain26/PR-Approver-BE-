@@ -22,7 +22,10 @@ const PullRequest=require('./model/pullrequest');
 const Approval=require('./model/approval');
 const { appRouter } = require('./modules/index.routes');
 const { authRouter } = require('./modules/Auth/auth.routes');
-
+const {init, getIo} =require('./config/socketConn');
+const { requestRouter } = require('./modules/Request/request.routes');
+const { userRouter } = require('./modules/User/user.routes');
+const { verifyToken } = require('./middleware/verifyToken');
 
 app.use(cookieParser());
 app.use(cors({credentials:true,origin:'http://localhost:3000'}));
@@ -32,40 +35,29 @@ connectDB();
 app.use(express.json());
 app.use(express.urlencoded({extended:false}));
 
-const io=new Server(server,{
-    connectionStateRecovery: {},
-    cors:{
-        origin: 'http://localhost:3000',
-    },
-    credentials:'include',
-    methods:["GET","POST"],
-})
-
-async function getApproversAndRequesters(checker) {
-    try {
-      const selectedArray = checker.filter(input=>(input!==false));
-
-      const approversArray=selectedArray.map(info=>({
-            approverId:info,
-            status:'Pending',
-      }))
-      return approversArray;
-
-    } catch (error) {
-      console.error("Error retrieving approvers and requesters:", error);
-      throw error;
-    }
-}
+init(server);
 
 
-app.get('/profile',(req,res)=>{
-    const {token}=req.cookies;
-    if(!token) res.json(null);
-    jwt.verify(token,secret,{},(err,info)=>{
-        if(err) throw err;
-        res.json(info);
-    })
-})
+
+// const io=new Server(server,{
+//     connectionStateRecovery: {},
+//     cors:{
+//         origin: 'http://localhost:3000',
+//     },
+//     credentials:'include',
+//     methods:["GET","POST"],
+// })
+
+
+
+// app.get('/profile',(req,res)=>{
+//     const {token}=req.cookies;
+//     if(!token) res.json(null);
+//     jwt.verify(token,secret,{},(err,info)=>{
+//         if(err) throw err;
+//         res.json(info);
+//     })
+// })
 
 // app.post('/register',async (req,res)=>{
 //     const {username,email,password}=req.body;
@@ -97,51 +89,51 @@ app.get('/profile',(req,res)=>{
 //     }
 // })
 
-app.use('/auth', authRouter);
+// app.use('/auth', authRouter);
 
-app.post('/logout',(req,res)=>{
-    res.cookie('token','').json('ok');
-})
+// app.post('/logout',(req,res)=>{
+//     res.cookie('token','').json('ok');
+// })
 
 
 
-app.get('/pull-request',async (req,res)=>{
-    const {token}=req.cookies;
+// app.get('/pull-request',async (req,res)=>{
+//     const {token}=req.cookies;
 
-    res.json(await PullRequest.find()
-    .populate('requesterId',['username'])
-    .sort({createdAt:-1})
-    .limit(50)
-    );
-})
+//     res.json(await PullRequest.find()
+//     .populate('requesterId',['username'])
+//     .sort({createdAt:-1})
+//     .limit(50)
+//     );
+// })
 
-app.get('/pull-request/:id',async(req,res)=>{
-    const {id}=req.params;
-    const postDoc=await PullRequest.findById(id)
-                        .populate('requesterId',['username'])
-                        .populate({
-                            path: 'approvers.approverId', // Adjust the path based on your schema
-                            model:'User',
-                            select: 'username email' // Specify the fields you want to select from the User model
-                        }).populate({
-                            path:'comments',
-                            model:'Review',
-                            populate:{
-                                path:'reviewerId',
-                                model:'User',
-                                select:'username',
-                            },
-                        }).populate({
-                            path:'approvals',
-                            model:'Approval',
-                            populate:{
-                                path:'approverId',
-                                model:'User',
-                                select:'username',
-                            },
-                        })
-    res.json(postDoc);
-})
+// app.get('/pull-request/:id',async(req,res)=>{
+//     const {id}=req.params;
+//     const postDoc=await PullRequest.findById(id)
+//                         .populate('requesterId',['username'])
+//                         .populate({
+//                             path: 'approvers.approverId', // Adjust the path based on your schema
+//                             model:'User',
+//                             select: 'username email' // Specify the fields you want to select from the User model
+//                         }).populate({
+//                             path:'comments',
+//                             model:'Review',
+//                             populate:{
+//                                 path:'reviewerId',
+//                                 model:'User',
+//                                 select:'username',
+//                             },
+//                         }).populate({
+//                             path:'approvals',
+//                             model:'Approval',
+//                             populate:{
+//                                 path:'approverId',
+//                                 model:'User',
+//                                 select:'username',
+//                             },
+//                         })
+//     res.json(postDoc);
+// })
 
 
 ///////////////////////////////////////
@@ -150,188 +142,192 @@ app.get('/pull-request/:id',async(req,res)=>{
 ///////////////////////////////////////
 ///////////////////////////////////////
 
-io.on('connection', (socket) => {
-    console.log('A user connected');
-    console.log(socket.id);
+// io.on('connection', (socket) => {
+//     console.log('A user connected');
+//     console.log(socket.id);
 
     
-    function handleParallel(userIds){
-        userIds.forEach(user=>{
-            io.emit(`newRequest${user.approverId}`,user.approverId);
-        })
-    }
+//     // function handleParallel(userIds){
+//     //     userIds.forEach(user=>{
+//     //         io.emit(`newRequest${user.approverId}`,user.approverId);
+//     //     })
+//     // }
 
-    function handleSequential(userIds,docs){
-        console.log(docs.counter);
-        if (docs.counter >= userIds.length) {
-            console.log("All users have been notified");
-            return;
-        }
-        const userId = userIds[docs.counter].approverId;
-        io.emit(`sender${userId}`, userIds[docs.counter].approverId);
-    }
+//     // function handleSequential(userIds,docs){
+//     //     console.log(docs.counter);
+//     //     if (docs.counter >= userIds.length) {
+//     //         console.log("All users have been notified");
+//     //         return;
+//     //     }
+//     //     const userId = userIds[docs.counter].approverId;
+//     //     io.emit(`sender${userId}`, userIds[docs.counter].approverId);
+//     // }
 
-    app.get('/getUsers',async(req,res)=>{
-        const {token}=req.cookies;
-        jwt.verify(token,secret,{},async(err,info)=>{
-            if(err) throw err;
-            const getUser=await User.find();
-            res.status(200).json(getUser);
-        })
-    })
+//     // app.get('/getUsers',async(req,res)=>{
+//     //     const {token}=req.cookies;
+//     //     jwt.verify(token,secret,{},async(err,info)=>{
+//     //         if(err) throw err;
+//     //         const getUser=await User.find();
+//     //         res.status(200).json(getUser);
+//     //     })
+//     // })
 
-    app.post('/pull-request',async(req,res)=>{
-        const {title,content,processed,checker}=req.body;
-        const {token}=req.cookies;
-        jwt.verify(token,secret,{},async(err,info)=>{
-            if(err) throw err;
-            const approversArray = await getApproversAndRequesters(checker);
-            if(title){
-            const userDoc=await PullRequest.create({
-                title,
-                description:content,
-                requesterId:info.id,
-                comments:[],
-                approvals:[],
-                processed,
-                approvers:approversArray,
-            })
+//     // app.post('/pull-request',async(req,res)=>{
+//     //     const {title,content,processed,checker}=req.body;
+//     //     const {token}=req.cookies;
+//     //     jwt.verify(token,secret,{},async(err,info)=>{
+//     //         if(err) throw err;
+//     //         const approversArray = await getApproversAndRequesters(checker);
+//     //         if(title){
+//     //         const userDoc=await PullRequest.create({
+//     //             title,
+//     //             description:content,
+//     //             requesterId:info.id,
+//     //             comments:[],
+//     //             approvals:[],
+//     //             processed,
+//     //             approvers:approversArray,
+//     //         })
             
-            if(processed==='parallel'){
-                handleParallel(approversArray);
-            }else if(processed==='sequential'){
-                handleSequential(approversArray,userDoc);
-            }
+//     //         if(processed==='parallel'){
+//     //             handleParallel(approversArray);
+//     //         }else if(processed==='sequential'){
+//     //             handleSequential(approversArray,userDoc);
+//     //         }
 
-            res.json(userDoc);}
-            else res.json('no response');
-        })
-    })
+//     //         res.json(userDoc);}
+//     //         else res.json('no response');
+//     //     })
+//     // })
 
-    app.delete('/pull-request/:id',async(req,res)=>{
-        const {id}=req.params;
-        const {token}=req.cookies;
-        jwt.verify(token,secret,{},async (err,info)=>{
-            if(err) throw err;
-            const postDoc=await PullRequest.findById(id);
-            const isAuthor=JSON.stringify(info.id)===JSON.stringify(postDoc.requesterId);
+//     app.delete('/pull-request/:id',async(req,res)=>{
+//         const {id}=req.params;
+//         const {token}=req.cookies;
+//         jwt.verify(token,secret,{},async (err,info)=>{
+//             if(err) throw err;
+//             const postDoc=await PullRequest.findById(id);
+//             const isAuthor=JSON.stringify(info.id)===JSON.stringify(postDoc.requesterId);
             
-            await Review.deleteMany({ _id: { $in: postDoc.comments } });
-            await Approval.deleteMany({ _id: { $in: postDoc.approvals } });
-            await PullRequest.deleteOne({ _id: id });
-            res.status(200).json('ok');
-        })  
-    })
+//             await Review.deleteMany({ _id: { $in: postDoc.comments } });
+//             await Approval.deleteMany({ _id: { $in: postDoc.approvals } });
+//             await PullRequest.deleteOne({ _id: id });
+//             res.status(200).json('ok');
+//         })  
+//     })
 
-    app.put('/pull-request/:id',async(req,res)=>{
-        const {id}=req.params;
-        const {token}=req.cookies;
-        jwt.verify(token,secret,{},async (err,info)=>{
-            if(err) throw err;
-            const {title,content}=req.body;
-            const postDoc=await PullRequest.findById(id);
-            const isAuthor=JSON.stringify(info.id)===JSON.stringify(postDoc.requesterId);
-            if(!isAuthor){
-                return res.status(400).send('not valid user');
-            }
-            await postDoc.updateOne({
-                $set: {
-                    title, 
-                    description:content,
-                    requesterId: info.id,
-                    comments: postDoc.comments,
-                    approvers:postDoc.approvers,
-                    approvals:postDoc.approvals,
-                    status:postDoc.status,
-                }
-            })
-            res.json(postDoc);
-        })
-    })
+//     app.put('/pull-request/:id',async(req,res)=>{
+//         const {id}=req.params;
+//         const {token}=req.cookies;
+//         jwt.verify(token,secret,{},async (err,info)=>{
+//             if(err) throw err;
+//             const {title,content}=req.body;
+//             const postDoc=await PullRequest.findById(id);
+//             const isAuthor=JSON.stringify(info.id)===JSON.stringify(postDoc.requesterId);
+//             if(!isAuthor){
+//                 return res.status(400).send('not valid user');
+//             }
+//             await postDoc.updateOne({
+//                 $set: {
+//                     title, 
+//                     description:content,
+//                     requesterId: info.id,
+//                     comments: postDoc.comments,
+//                     approvers:postDoc.approvers,
+//                     approvals:postDoc.approvals,
+//                     status:postDoc.status,
+//                 }
+//             })
+//             res.json(postDoc);
+//         })
+//     })
 
-    app.post('/pull-request/:id/comments',async(req,res)=>{
-        const {comment}=req.body;
-        const {id}=req.params;
-        const {token}=req.cookies;
-        if(!token) return res.status(401).json('login first');
+//     app.post('/pull-request/:id/comments',async(req,res)=>{
+//         const {comment}=req.body;
+//         const {id}=req.params;
+//         const {token}=req.cookies;
+//         if(!token) return res.status(401).json('login first');
 
-        jwt.verify(token,secret,{},async(err,info)=>{
-            if(err) throw err;
-            const postDoc=await PullRequest.findById(id);
-            const newComment= await Review.create({
-                pullRequestId:id,
-                reviewerId:info.id,
-                comments:comment,
-            })
-            postDoc.comments.push(newComment);
-            await postDoc.save();
-            res.status(200).json(comment);
-        })
-    })
+//         jwt.verify(token,secret,{},async(err,info)=>{
+//             if(err) throw err;
+//             const postDoc=await PullRequest.findById(id);
+//             const newComment= await Review.create({
+//                 pullRequestId:id,
+//                 reviewerId:info.id,
+//                 comments:comment,
+//             })
+//             postDoc.comments.push(newComment);
+//             await postDoc.save();
+//             res.status(200).json(comment);
+//         })
+//     })
 
+//     app.post('/pull-request/:id/approvals',async(req,res)=>{
+//         const {status}=req.body;
+//         const {id}=req.params;
+//         const {token}=req.cookies;
+//         if(!token) return res.status(401).json('login first');
 
-    app.post('/pull-request/:id/approvals',async(req,res)=>{
-        const {status}=req.body;
-        const {id}=req.params;
-        const {token}=req.cookies;
-        if(!token) return res.status(401).json('login first');
+//         jwt.verify(token,secret,{},async(err,info)=>{
+//             if(err) throw err;
+//             const postDoc=await PullRequest.findById(id);
+//             const newApproval= await Approval.create({
+//                 pullRequestId:id,
+//                 approverId:info.id,
+//                 counter:(postDoc.counter)++,
+//                 status:status,
+//             })
+//             postDoc.approvals.push(newApproval);
+//             await postDoc.save();
 
-        jwt.verify(token,secret,{},async(err,info)=>{
-            if(err) throw err;
-            const postDoc=await PullRequest.findById(id);
-            const newApproval= await Approval.create({
-                pullRequestId:id,
-                approverId:info.id,
-                counter:(postDoc.counter)++,
-                status:status,
-            })
-            postDoc.approvals.push(newApproval);
-            await postDoc.save();
-
-            if(status==='Approved'){
-                postDoc.approvers.forEach((approver) => {
-                    if (JSON.stringify(info.id)===JSON.stringify(approver.approverId)) {
-                        approver.status = 'Approved';
-                        if(postDoc.processed==='sequential'){
-                            handleSequential(postDoc.approvers,postDoc);
-                        }
-                    }
-                });
+//             if(status==='Approved'){
+//                 postDoc.approvers.forEach((approver) => {
+//                     if (JSON.stringify(info.id)===JSON.stringify(approver.approverId)) {
+//                         approver.status = 'Approved';
+//                         if(postDoc.processed==='sequential'){
+//                             handleSequential(postDoc.approvers,postDoc);
+//                         }
+//                     }
+//                 });
             
                 
-                let flag=false;
-                postDoc.approvers.forEach((approver)=>{
-                    if(approver.status==="Pending"){
-                        flag=true;
-                    }
-                })
-                if(flag==false){
-                    postDoc.status="Approved";
-                }
-                postDoc.save();
-            }
+//                 let flag=false;
+//                 postDoc.approvers.forEach((approver)=>{
+//                     if(approver.status==="Pending"){
+//                         flag=true;
+//                     }
+//                 })
+//                 if(flag==false){
+//                     postDoc.status="Approved";
+//                 }
+//                 postDoc.save();
+//             }
 
-            if(status==='Rejected'){
-                postDoc.approvers.forEach((approver) => {
-                    if (JSON.stringify(info.id)===JSON.stringify(approver.approverId)) {
-                    approver.status = 'Rejected';
-                    }
-                });
+//             if(status==='Rejected'){
+//                 postDoc.approvers.forEach((approver) => {
+//                     if (JSON.stringify(info.id)===JSON.stringify(approver.approverId)) {
+//                     approver.status = 'Rejected';
+//                     }
+//                 });
 
-                postDoc.status="Rejected";
-                postDoc.save();
-            }
+//                 postDoc.status="Rejected";
+//                 postDoc.save();
+//             }
            
-            res.status(200).json(newApproval); 
-        })
-    })
+//             res.status(200).json(newApproval); 
+//         })
+//     })
 
-    socket.on('disconnect', () => {
-        console.log('a user disconnected');
-    });
-});
+//     socket.on('disconnect', () => {
+//         console.log('a user disconnected');
+//     });
+// });
 
-// app.use('/', appRouter);
+// app.use('/auth', authRouter);
+
+// app.use('/request', verifyToken ,requestRouter);
+
+// app.use('/user',verifyToken, userRouter);
+app.use('/', appRouter);
 
 // global error handler
 app.use((error, req, res, next) => {

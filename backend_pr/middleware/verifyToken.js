@@ -11,7 +11,7 @@ exports.verifyToken = async (req, res, next) => {
     const decodedInfo = jwt.verify(token, process.env.JWT_SECRET, {
       expiresIn: process.env.EXPIRES_IN,
     });
-    const userDoc=await User.find({email:decodedInfo.email});
+    const userDoc=await User.findById(decodedInfo.id);
     if(!userDoc){
         throw new Error('User not found') //404 error
     }

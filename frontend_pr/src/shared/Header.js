@@ -1,12 +1,29 @@
 import { Link } from "react-router-dom";
-import { useContext, useEffect } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
 import { UserContext } from "../UserContext";
 import { useUserStore } from "../store/UserStore";
+import NotificationsIcon from "@mui/icons-material/Notifications";
+import AddBoxIcon from "@mui/icons-material/AddBox";
+import LogoutIcon from "@mui/icons-material/Logout";
+import { Tooltip } from "@mui/material";
+import NotificationPage from "./NotificationPage";
 
 const Header = () => {
   const navigate = useNavigate();
+
+  const [open, setOpen] = useState(false);
+  // const [selectedValue, setSelectedValue] = React.useState(emails[1]);
+
+  const handleClickOpen = () => {
+    setOpen(true);
+  };
+
+  const handleClose = (value) => {
+    setOpen(false);
+    // setSelectedValue(value);
+  };
 
   const userInfo = useUserStore((state) => state.user);
   const authToken = useUserStore((state) => state.authToken);
@@ -39,16 +56,30 @@ const Header = () => {
               >
                 <ul className="navbar-nav me-auto mb-2 mb-lg-0">
                   <li className="nav-item">
-                    Hi,{" "}
-                    {username.charAt(0).toUpperCase() +
-                      username.slice(1).toLowerCase()}
+                    <Link
+                      to="/requests"
+                      style={{ textDecoration: "none", color: "#d5d5d5" }}
+                    >
+                      Hi,{" "}
+                      {username.charAt(0).toUpperCase() +
+                        username.slice(1).toLowerCase()}
+                    </Link>
                   </li>
                   <li className="nav-item">
                     <Link
                       to="/newPullRequest"
                       style={{ textDecoration: "none", color: "#d5d5d5" }}
                     >
-                      Create Pull Request
+                      <Tooltip title="Create Pull Request">
+                        <AddBoxIcon />
+                      </Tooltip>
+                    </Link>
+                  </li>
+                  <li className="nav-item" >
+                  <Link to={`/notifications`}>
+                    <Tooltip title="Notifications">
+                      <NotificationsIcon sx={{textDecoration:'none', color:'purple'}} onClick={handleClickOpen} sx={{cursor:'pointer'}}/>
+                    </Tooltip>
                     </Link>
                   </li>
                   <li className="nav-item">
@@ -57,12 +88,15 @@ const Header = () => {
                       onClick={handleLogout}
                       style={{ textDecoration: "none", color: "#d5d5d5" }}
                     >
-                      Logout
+                      <Tooltip title="Logout">
+                        <LogoutIcon />
+                      </Tooltip>
                     </a>
                   </li>
                 </ul>
               </div>
             )}
+
 
             {!username && (
               <div

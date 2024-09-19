@@ -1,29 +1,43 @@
 import { useState,useEffect,useContext } from "react";
 import { UserContext } from "../../UserContext";
 import PullRequest from "../components/PullRequest";
+import { ApiQueries } from "../../api/query";
+import { Box, Typography } from "@mui/material";
 
 const ApprovedRequest = () => {
     const [posts,setPosts]=useState([]);
-    const {userInfo,setRefresh,sock}=useContext(UserContext);
-    const [flag,setFlag]=useState(false);
 
-    const getPost=()=>fetch('http://localhost:4000/pull-request',{
-        method:'GET',
-        credentials:'include',
-    }).then(response=>{
-        response.json().then(post=>{
-        setPosts(post);
-        setRefresh(true);
-        })
-    });
+    const {data:postData, isFetched:isPostDataFetched, isLoading:isPostDataLoading}=ApiQueries.useGetRequests();
 
     useEffect(()=>{
-        getPost();
-    },[posts])
+        if(postData && isPostDataFetched){
+            setPosts(postData);
+        }
+    },[postData])
 
+    const approvedRequests=posts.filter(post=>(post.status==='Approved'));
   return (
     <div className="pull-body">
-        {posts.length>0 && posts.filter(post=>(post.status==='Approved')).map(post=>(
+    {approvedRequests.length === 0 && (
+        <Box
+          sx={{
+            display: "flex",
+            width: "100%",
+            height: "80vh",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          <Typography
+            variant="h4"
+            component="h4"
+            sx={{ color: "#d5d5d5", fontWeight: "600" }}
+          >
+            Nothing to Display!
+          </Typography>
+        </Box>
+      )}
+        {approvedRequests.length>0 && approvedRequests.map(post=>(
             <PullRequest {...post} />
         ))} 
     </div>
