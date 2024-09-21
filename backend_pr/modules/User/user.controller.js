@@ -10,6 +10,28 @@ const getUsers = async (req, res, next) => {
   }
 };
 
-exports.userController={
-    getUsers,
-}
+const updateLastCheckTime = async (req, res, next) => {
+  try {
+    // console.log(req.body);
+    const {lastCheckTime} = req.body;
+    const { id } = req.params;
+    console.log(lastCheckTime)
+    const updatedDoc = await User.findByIdAndUpdate(
+      id,
+      {
+        $set: {
+          lastCheckTime,
+        },
+      },
+      { new: true }
+    );
+    return res.status(200).json(updatedDoc);
+  } catch (err) {
+    return next(err);
+  }
+};
+
+exports.userController = {
+  getUsers,
+  updateLastCheckTime,
+};

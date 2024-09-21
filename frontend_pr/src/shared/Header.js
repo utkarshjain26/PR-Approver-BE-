@@ -7,14 +7,16 @@ import { useUserStore } from "../store/UserStore";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import AddBoxIcon from "@mui/icons-material/AddBox";
 import LogoutIcon from "@mui/icons-material/Logout";
-import { Tooltip } from "@mui/material";
+import { Badge, Tooltip } from "@mui/material";
 import NotificationPage from "./NotificationPage";
+import { ApiMutations, ApiQueries } from "../api/query";
 
 const Header = () => {
   const navigate = useNavigate();
 
   const [open, setOpen] = useState(false);
   // const [selectedValue, setSelectedValue] = React.useState(emails[1]);
+  const [newNotificationCount, setNewNotificationCount] = useState(0);
 
   const handleClickOpen = () => {
     setOpen(true);
@@ -33,6 +35,18 @@ const Header = () => {
     logout();
     navigate("/");
   };
+
+  const {
+    data: newNotifications,
+    isFetched: isNewNotificationsFetched,
+    isLoading: isNewNotificationsLoading,
+  } = ApiQueries.useGetNewNotification({ id: userInfo?.userId });
+
+  useEffect(() => {
+    if (newNotifications && isNewNotificationsFetched) {
+      setNewNotificationCount(newNotifications.length);
+    }
+  }, [newNotifications]);
 
   const username = userInfo?.userName;
   return (
@@ -75,11 +89,23 @@ const Header = () => {
                       </Tooltip>
                     </Link>
                   </li>
-                  <li className="nav-item" >
-                  <Link to={`/notifications`}>
-                    <Tooltip title="Notifications">
-                      <NotificationsIcon sx={{textDecoration:'none', color:'purple'}} onClick={handleClickOpen} sx={{cursor:'pointer'}}/>
-                    </Tooltip>
+                  <li className="nav-item">
+                    <Link to={`/notifications`}>
+                      <Tooltip title="Notifications">
+                        <Badge
+                          badgeContent={newNotificationCount}
+                          color="primary"
+                        >
+                          <NotificationsIcon
+                            sx={{
+                              textDecoration: "none",
+                              color: "#d5d5d5",
+                              cursor: "pointer",
+                            }}
+                            onClick={handleClickOpen}
+                          />
+                        </Badge>
+                      </Tooltip>
                     </Link>
                   </li>
                   <li className="nav-item">
@@ -96,7 +122,6 @@ const Header = () => {
                 </ul>
               </div>
             )}
-
 
             {!username && (
               <div

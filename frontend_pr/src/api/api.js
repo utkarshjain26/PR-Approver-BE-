@@ -71,14 +71,24 @@ const ApiRequests = {
       url: `/user`,
       method: "GET",
     }),
-
+  updateLastCheckTime: async ({ id, payload }) =>
+    request({
+      url: `/user/${id}`,
+      method: "PUT",
+      data: JSON.stringify(payload),
+    }),
   // notification apis
   getNotifications: async () =>
     request({
       url: `/notification/`,
       method: "GET",
     }),
-  updateNotificationStatus: async ({id}) =>
+  getNewNotification: async ({id}) =>
+    request({
+      url: `/notification/${id}/new`,
+      method: "GET",
+    }),
+  updateNotificationStatus: async ({ id }) =>
     request({
       url: `/notification/${id}`,
       method: "PUT",

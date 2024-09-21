@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useUserStore } from "../../store/UserStore";
 import { useEffect } from "react";
 import io from "socket.io-client";
+import Header from "../../shared/Header";
 // import {
 //   connectSocket,
 //   disconnectSocket,
