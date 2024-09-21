@@ -1,4 +1,5 @@
 const Notification = require("../../model/notification");
+const User = require("../../model/user");
 
 const getNotifications = async (req, res, next) => {
   try {
@@ -12,6 +13,20 @@ const getNotifications = async (req, res, next) => {
     return next(err);
   }
 };
+
+const getNewNotification=async(req,res,next)=>{
+  try{
+    const {id}=req.params;
+    const userDoc=await User.findById(id);
+    const getNewNotifications=await Notification.find({
+      approverId:id,
+      createdAt: {$gt:userDoc.lastCheckTime}
+    });
+    return res.status(200).json(getNewNotifications);
+  }catch(err){
+    return next(err);
+  }
+}
 
 const updateNotificationStatus = async (req, res, next) => {
   try {
@@ -29,5 +44,6 @@ const updateNotificationStatus = async (req, res, next) => {
 
 exports.notificationController = {
   getNotifications,
+  getNewNotification,
   updateNotificationStatus,
 };

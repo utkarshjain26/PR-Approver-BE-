@@ -22,10 +22,12 @@ import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
 import { formatDistanceToNow } from "date-fns";
 import { TimeAgo } from "../services/TimeFormat";
 import CheckBoxIcon from "@mui/icons-material/CheckBox";
+import { useUserStore } from "../store/UserStore";
 
 const NotificationPage = () => {
   const [notifications, setNotifications] = useState([]);
   const navigate=useNavigate();
+  const userInfo = useUserStore((state) => state.user);
 
   const {
     data: notificationData,
@@ -40,6 +42,25 @@ const NotificationPage = () => {
       console.log(notificationData);
     }
   }, [notificationData]);
+
+  const { mutate: updateLastCheckTime } = ApiMutations.useUpdateLastCheckTime();
+
+  useEffect(() => {
+    if (userInfo) {
+      const payload = {
+        lastCheckTime: Date.now(),
+      };
+
+      updateLastCheckTime(
+        { id: userInfo.userId, payload },
+        {
+          onSuccess: () => {
+            console.log("Last time updated in user");
+          },
+        }
+      );
+    }
+  }, [userInfo]);
 
   const handleReadStatus=(id,requestId)=>{
     updateNotificationStatus({id},{
