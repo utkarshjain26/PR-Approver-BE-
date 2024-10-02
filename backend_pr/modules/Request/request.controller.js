@@ -3,6 +3,7 @@ const Notification = require("../../model/notification");
 const { services } = require("../../services/services");
 const Review = require("../../model/review");
 const Approval = require("../../model/approval");
+const { isUserOnline, sendNotificationToUser } = require('../../socket/socketHandler');
 
 const getRequests = async (req, res, next) => {
   try {
@@ -73,6 +74,9 @@ const createRequest = async (req, res, next) => {
       if (processed === "parallel") {
         const createNotificationsForRequest = async (checker) => {
           for (let i = 0; i < checker.length; ++i) {
+            if (isUserOnline(checker[i])) {
+              sendNotificationToUser(checker[i], `Review a request with title ${title}`);
+            }
             await services.createNotification({
               approverId: checker[i],
               requestDoc: requestDoc,
@@ -83,6 +87,9 @@ const createRequest = async (req, res, next) => {
         createNotificationsForRequest(checker);
       } else if (processed === "sequential") {
         const createNotificationsForRequest = async (checker) => {
+          if (isUserOnline(checker[requestDoc.counter])) {
+            sendNotificationToUser(checker[requestDoc.counter], `Review a request with title ${title}`);
+          }
           await services.createNotification({
             approverId: checker[requestDoc.counter],
             requestDoc: requestDoc,
@@ -193,6 +200,9 @@ const postApprovalToRequestById = async (req, res, next) => {
         ) {
           approver.status = "Approved";
           if (postDoc.processed === "sequential") {
+            if (isUserOnline(postDoc.approvers[postDoc.counter]?.approverId)) {
+              sendNotificationToUser(postDoc.approvers[postDoc.counter]?.approverId, `Review a request with title ${postDoc.title}`);
+            }
             services.createNotification({
               approverId: postDoc.approvers[postDoc.counter]?.approverId,
               requestDoc: postDoc,
