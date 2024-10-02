@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, Outlet } from "react-router-dom";
 import React, { useContext, useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
@@ -7,16 +7,34 @@ import { useUserStore } from "../store/UserStore";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import AddBoxIcon from "@mui/icons-material/AddBox";
 import LogoutIcon from "@mui/icons-material/Logout";
-import { Badge, Tooltip } from "@mui/material";
+import {
+  Badge,
+  Box,
+  Button,
+  IconButton,
+  Snackbar,
+  Tooltip,
+} from "@mui/material";
 import NotificationPage from "./NotificationPage";
 import { ApiMutations, ApiQueries } from "../api/query";
+import Footer from "./Footer";
+import {
+  disconnectSocket,
+  initiateSocketConnection,
+  subscribeToNotifications,
+} from "../services/SocketService";
+import CloseIcon from "@mui/icons-material/Close";
+import toast, { Toaster } from "react-hot-toast";
+import ArticleIcon from '@mui/icons-material/Article';
+
 
 const Header = () => {
   const navigate = useNavigate();
 
-  const [open, setOpen] = useState(false);
   // const [selectedValue, setSelectedValue] = React.useState(emails[1]);
   const [newNotificationCount, setNewNotificationCount] = useState(0);
+  const [notifications, setNotifications] = useState([]);
+  const [open, setOpen] = useState(true);
 
   const handleClickOpen = () => {
     setOpen(true);
@@ -32,6 +50,7 @@ const Header = () => {
 
   const logout = useUserStore((state) => state.logout);
   const handleLogout = () => {
+    disconnectSocket();
     logout();
     navigate("/");
   };
@@ -48,9 +67,51 @@ const Header = () => {
     }
   }, [newNotifications]);
 
+  useEffect(() => {
+    if (userInfo) {
+      initiateSocketConnection("http://localhost:4000", userInfo?.userId);
+
+      subscribeToNotifications((notification) => {
+        setNotifications((prev) => [...prev, notification]);
+      });
+
+      return () => {
+        disconnectSocket(); 
+      };
+    }
+  }, [userInfo]);
+
+  useEffect(() => {
+    // setOpen(true);
+    if (notifications.length>0) {
+      notifications.forEach((notification) =>
+        toast.success(`${notification}`, {
+          position: "top-center",
+          duration: 6000,
+          style: {
+            border: "1px solid grey",
+            padding: "1rem 1rem",
+            color: "white",
+            backgroundColor: "#101217",
+            width: "30rem",
+            height: "auto",
+          },
+        })
+      );
+
+      const count=newNotificationCount;
+      setNewNotificationCount(count+(notifications.length))
+      setNotifications([]);
+    }
+    
+  }, [notifications,newNotificationCount]);
+
+
+  console.log("object", notifications);
+
   const username = userInfo?.userName;
   return (
-    <div className="nav-header">
+    <div>
       <header>
         <nav
           className="nav-bar navbar navbar-expand-lg bg-body-tertiary"
@@ -70,13 +131,18 @@ const Header = () => {
               >
                 <ul className="navbar-nav me-auto mb-2 mb-lg-0">
                   <li className="nav-item">
+                      Hi,{" "}
+                      {username.charAt(0).toUpperCase() +
+                        username.slice(1).toLowerCase()}
+                  </li>
+                  <li className="nav-item">
                     <Link
                       to="/requests"
                       style={{ textDecoration: "none", color: "#d5d5d5" }}
                     >
-                      Hi,{" "}
-                      {username.charAt(0).toUpperCase() +
-                        username.slice(1).toLowerCase()}
+                    <Tooltip title="All Requests">
+                        <ArticleIcon />
+                      </Tooltip>
                     </Link>
                   </li>
                   <li className="nav-item">
@@ -90,7 +156,10 @@ const Header = () => {
                     </Link>
                   </li>
                   <li className="nav-item">
-                    <Link to={`/notifications`}>
+                    <Box onClick={(e)=>{
+                      setNewNotificationCount(0);
+                      navigate('/notifications')
+                    }}>
                       <Tooltip title="Notifications">
                         <Badge
                           badgeContent={newNotificationCount}
@@ -106,7 +175,7 @@ const Header = () => {
                           />
                         </Badge>
                       </Tooltip>
-                    </Link>
+                    </Box>
                   </li>
                   <li className="nav-item">
                     <a
@@ -151,6 +220,8 @@ const Header = () => {
           </div>
         </nav>
       </header>
+      <Outlet />
+      <Footer />
     </div>
   );
 };

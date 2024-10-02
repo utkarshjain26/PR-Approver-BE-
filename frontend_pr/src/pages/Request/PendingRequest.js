@@ -7,6 +7,7 @@ import Notification from "../../shared/Notification";
 import { ApiQueries } from "../../api/query";
 import { useUserStore } from "../../store/UserStore";
 import { Box, Typography } from "@mui/material";
+import CloseIcon from "@mui/icons-material/Close";
 
 const { io } = require("socket.io-client");
 const socket = io("http://localhost:4000");
@@ -19,23 +20,23 @@ const PendingRequest = () => {
 
   const user = useUserStore((state) => state.user);
   const authToken = useUserStore((state) => state.authToken);
-  const notification = useUserStore((state) => state.notification);
+  // const notification = useUserStore((state) => state.notification);
 
-  const setNotification = useUserStore((state) => state.setNotification);
+  // const setNotification = useUserStore((state) => state.setNotification);
 
-  useEffect(() => {
-    socket.on(`parallel${user.userId}`, (message) => {
-      setNotification(message);
-    });
-  }, [socket]);
+  // useEffect(() => {
+  //   socket.on(`parallel${user.userId}`, (message) => {
+  //     setNotification(message);
+  //   });
+  // }, [socket]);
 
-  console.log("notification array", notification);
+  // console.log("notification array", notification);
 
-  useEffect(() => {
-    socket.on(`sequential${user.userId}`, (message) => {
-      setNotification(message);
-    });
-  }, [socket]);
+  // useEffect(() => {
+  //   socket.on(`sequential${user.userId}`, (message) => {
+  //     setNotification(message);
+  //   });
+  // }, [socket]);
 
   const {
     data: requestData,
@@ -50,9 +51,7 @@ const PendingRequest = () => {
     }
   }, [requestData]);
 
-  const notificationHandleClose = () => {
-    setOpen(false);
-  };
+  
 
   const pendingPosts = posts.filter((post) => post.status === "Pending");
 
