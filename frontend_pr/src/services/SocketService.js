@@ -1,23 +1,29 @@
-// // socketManager.js
-// import io from 'socket.io-client';
-// let socket;
+const io = require('socket.io-client');
 
-// export const connectSocket = (token) => {
-//   socket = io('http://localhost:4000', {
-//     query: { token }
-//   });
-//   if(socket) console.log('Connected from server via socket');
-// }
+let socket;
 
-// export const disconnectSocket = () => {
-//   if (socket) {
-//     socket.disconnect();
-//     console.log('Socket has been disconnected on logout');
-//   }
-// }
+export const initiateSocketConnection = (url, userId) => {
+  socket = io.connect(url);
+  console.log("Connecting socket...");
+    
+  socket.on("connect", () => {
+    console.log("Socket connected:", socket.id);
+    console.log(userId);
+    // Register user with the backend
+    socket.emit("registerUser", userId);
+  });
+};
 
-// export const getSocket = () => {
-//   if(socket) return socket.id;
-// };
+export const disconnectSocket = () => {
+  if (socket) {
+    socket.disconnect();
+    console.log("Socket disconnected.");
+  }
+};
 
-// export default { connectSocket, disconnectSocket, getSocket };
+export const subscribeToNotifications = (callback) => {
+  if (!socket) return;
+  socket.on("notification", (notification) => {
+    callback(notification);
+  });
+};

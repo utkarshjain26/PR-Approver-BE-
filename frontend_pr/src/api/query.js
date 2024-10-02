@@ -1,6 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import ApiRequests from "./api";
-import { useNotificationStore } from "../store/NotificationStore";
 
 export const ApiQueries = {
   useGetUsers: () =>
